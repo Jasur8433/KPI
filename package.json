@@ -1,0 +1,16 @@
+{
+  "name": "rttm-kpi-management-system",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w @rttm-kpi/api\" \"npm run dev -w @rttm-kpi/web\"",
+    "build": "npm run build -w @rttm-kpi/api && npm run build -w @rttm-kpi/web",
+    "lint": "npm run lint -w @rttm-kpi/api && npm run lint -w @rttm-kpi/web"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

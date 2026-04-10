@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  CENTER_HEAD
+  DEPARTMENT_HEAD
+  EMPLOYEE
+  VIEWER
+}
+
+enum Period {
+  MONTH
+  QUARTER
+  YEAR
+}
+
+enum SubmissionStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id                String          @id @default(cuid())
+  name              String
+  email             String          @unique
+  passwordHash      String
+  role              Role
+  departmentId      String?
+  positionId        String?
+  preferredLanguage String          @default("ru")
+  isActive          Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  department        Department?     @relation(fields: [departmentId], references: [id])
+  position          Position?       @relation(fields: [positionId], references: [id])
+  submissions       KpiSubmission[]
+  notifications     Notification[]
+  badges            UserBadge[]
+}
+
+model Department {
+  id          String @id @default(cuid())
+  name        String @unique
+  description String?
+  users       User[]
+  kpis        Kpi[]
+}
+
+model Position {
+  id          String @id @default(cuid())
+  name        String @unique
+  description String?
+  users       User[]
+  kpis        Kpi[]
+}
+
+model Kpi {
+  id             String          @id @default(cuid())
+  title          String
+  description    String
+  unit           String
+  target         Float
+  weight         Float
+  period         Period
+  departmentId   String?
+  positionId     String?
+  isHigherBetter Boolean         @default(true)
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  department     Department?     @relation(fields: [departmentId], references: [id])
+  position       Position?       @relation(fields: [positionId], references: [id])
+  values         KpiValue[]
+
+  @@index([departmentId, positionId])
+}
+
+model KpiSubmission {
+  id            String           @id @default(cuid())
+  userId        String
+  month         Int
+  year          Int
+  status        SubmissionStatus @default(DRAFT)
+  managerNote   String?
+  submittedAt   DateTime?
+  reviewedAt    DateTime?
+  reviewerId    String?
+  totalScore    Float            @default(0)
+  weightedScore Float            @default(0)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  user          User             @relation(fields: [userId], references: [id])
+  values        KpiValue[]
+
+  @@unique([userId, month, year])
+}
+
+model KpiValue {
+  id           String        @id @default(cuid())
+  submissionId String
+  kpiId        String
+  value        Float
+  scorePercent Float
+  weighted     Float
+  comment      String?
+  proofFileUrl String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  submission   KpiSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  kpi          Kpi           @relation(fields: [kpiId], references: [id])
+
+  @@unique([submissionId, kpiId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Badge {
+  id          String     @id @default(cuid())
+  key         String     @unique
+  title       String
+  description String
+  threshold   Float
+  users       UserBadge[]
+}
+
+model UserBadge {
+  id         String   @id @default(cuid())
+  userId     String
+  badgeId    String
+  achievedAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge      Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+}
